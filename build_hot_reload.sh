@@ -35,10 +35,10 @@ esac
 
 # Build the game.
 echo "Building game$DLL_EXT"
-odin build game -extra-linker-flags:"$EXTRA_LINKER_FLAGS" -define:RAYLIB_SHARED=true -build-mode:dll -out:game_tmp$DLL_EXT -strict-style -vet -debug
+odin build game -extra-linker-flags:"$EXTRA_LINKER_FLAGS" -define:RAYLIB_SHARED=true -build-mode:dll -out:bin/game_tmp$DLL_EXT -debug
 
 # Need to use a temp file on Linux because it first writes an empty `game.so`, which the game will load before it is actually fully written.
-mv game_tmp$DLL_EXT game$DLL_EXT
+mv bin/game_tmp$DLL_EXT bin/game$DLL_EXT
 
 # Do not build the game_hot_reload.bin if it is already running.
 # -f is there to make sure we match against full name, including .bin
@@ -47,5 +47,5 @@ if pgrep -f game_hot_reload.bin > /dev/null; then
     exit 1
 else
     echo "Building game_hot_reload.bin"
-    odin build main_hot_reload -out:game_hot_reload.bin -strict-style -vet -debug
+    odin build main_hot_reload -out:bin/game_hot_reload.bin -strict-style -vet -debug
 fi

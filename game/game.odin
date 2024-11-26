@@ -14,75 +14,36 @@
 
 package game
 
-import "core:math/linalg"
+import "core:c/libc"
 import "core:fmt"
+import "core:io"
+import "core:math/linalg"
 import rl "vendor:raylib"
 
+// Some types
+Vec2 :: rl.Vector2
+Vec3 :: rl.Vector3
+Rect :: rl.Rectangle
+Color :: rl.Color
+
+SCRIPT_EXT :: "bat" when ODIN_OS == .Windows else "sh"
 PIXEL_WINDOW_HEIGHT :: 180
 
+run_cmd :: libc.system
+
+current_cursor: rl.MouseCursor = .DEFAULT
+
+
+// The Memory
 Game_Memory :: struct {
-	player_pos: rl.Vector2,
-	some_number: int,
+	camera:             rl.Camera2D,
+	show_debug_overlay: bool,
 }
 
 g_mem: ^Game_Memory
 
-game_camera :: proc() -> rl.Camera2D {
-	w := f32(rl.GetScreenWidth())
-	h := f32(rl.GetScreenHeight())
 
-	return {
-		zoom = h/PIXEL_WINDOW_HEIGHT,
-		target = g_mem.player_pos,
-		offset = { w/2, h/2 },
-	}
-}
-
-ui_camera :: proc() -> rl.Camera2D {
-	return {
-		zoom = f32(rl.GetScreenHeight())/PIXEL_WINDOW_HEIGHT,
-	}
-}
-
-update :: proc() {
-	input: rl.Vector2
-
-	if rl.IsKeyDown(.UP) || rl.IsKeyDown(.W) {
-		input.y -= 1
-	}
-	if rl.IsKeyDown(.DOWN) || rl.IsKeyDown(.S) {
-		input.y += 1
-	}
-	if rl.IsKeyDown(.LEFT) || rl.IsKeyDown(.A) {
-		input.x -= 1
-	}
-	if rl.IsKeyDown(.RIGHT) || rl.IsKeyDown(.D) {
-		input.x += 1
-	}
-
-	input = linalg.normalize0(input)
-	g_mem.player_pos += input * rl.GetFrameTime() * 100
-	g_mem.some_number += 1
-}
-
-draw :: proc() {
-	rl.BeginDrawing()
-	rl.ClearBackground(rl.BLACK)
-
-	rl.BeginMode2D(game_camera())
-	rl.DrawRectangleV(g_mem.player_pos, {10, 20}, rl.WHITE)
-	rl.DrawRectangleV({20, 20}, {10, 10}, rl.RED)
-	rl.DrawRectangleV({-30, -20}, {10, 10}, rl.GREEN)
-	rl.EndMode2D()
-
-	rl.BeginMode2D(ui_camera())
-	// Note: main_hot_reload.odin clears the temp allocator at end of frame.
-	rl.DrawText(fmt.ctprintf("some_number: %v\nplayer_pos: %v", g_mem.some_number, g_mem.player_pos), 5, 5, 8, rl.WHITE)
-	rl.EndMode2D()
-
-	rl.EndDrawing()
-}
-
+// Exported functions
 @(export)
 game_update :: proc() -> bool {
 	update()
@@ -92,18 +53,23 @@ game_update :: proc() -> bool {
 
 @(export)
 game_init_window :: proc() {
-	rl.SetConfigFlags({.WINDOW_RESIZABLE, .VSYNC_HINT})
-	rl.InitWindow(1280, 720, "Odin + Raylib + Hot Reload template!")
-	rl.SetWindowPosition(200, 200)
-	rl.SetTargetFPS(500)
+	flags: rl.ConfigFlags : {.WINDOW_RESIZABLE, .WINDOW_HIGHDPI}
+	rl.SetConfigFlags(flags)
+	rl.InitWindow(600, 420, "XTract")
+	rl.SetTargetFPS(240)
+	rl.SetExitKey(.KEY_NULL)
 }
 
 @(export)
 game_init :: proc() {
 	g_mem = new(Game_Memory)
 
+	w := f32(rl.GetScreenWidth())
+	h := f32(rl.GetScreenHeight())
+
 	g_mem^ = Game_Memory {
-		some_number = 100,
+		camera = {zoom = h / PIXEL_WINDOW_HEIGHT, target = {}, offset = {w / 2, h / 2}},
+		show_debug_overlay = ODIN_DEBUG,
 	}
 
 	game_hot_reloaded(g_mem)
