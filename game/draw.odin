@@ -30,7 +30,7 @@ draw_grid :: proc(target: Vec2, spacing: i32, radius: i32) {
 
 draw_background :: proc() {
 	using rl
-	draw_grid(g_mem.camera.target, 100, 1000)
+	draw_grid(g_mem.camera.target, 100, i32(0.5 * g_mem.camera.zoom))
 }
 
 draw_debug_overlay :: proc() {
@@ -43,11 +43,11 @@ draw_debug_overlay :: proc() {
 	cy := h / 2
 
 	DrawFPS(w - 100, 5)
-	DrawText("Raylib version " + rl.VERSION, w - 185, 25, 20, BLUE)
+	ui_text("Raylib version " + rl.VERSION, {f32(w) - 220, 25}, 18, BLUE)
 
-	DrawText(fmt.ctprintf("camera: %#v", g_mem.camera), 5, 5, 18, WHITE)
+	ui_text(fmt.ctprintf("camera: %#v", g_mem.camera), {5, 5}, 18, WHITE)
 
-	DrawText("Press ; (semicolon) to close", w - 300, h - 30, 20, YELLOW)
+	ui_text("Press ; (semicolon) to close", {f32(w) - 380, f32(h) - 30}, 20, YELLOW)
 
 	// Draw line through middle
 	DrawLine(cx, 0, cx, h, GREEN)
@@ -80,7 +80,7 @@ draw :: proc() {
 	EndMode2D()
 
 	// Draw all the other stuff ON TOP
-	draw_ui()
+	ui_draw()
 
 	if g_mem.show_debug_overlay do draw_debug_overlay()
 

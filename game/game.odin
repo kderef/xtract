@@ -38,6 +38,8 @@ current_cursor: rl.MouseCursor = .DEFAULT
 Game_Memory :: struct {
 	camera:             rl.Camera2D,
 	show_debug_overlay: bool,
+	assets:             Assets,
+	toolbar:            Toolbar,
 }
 
 g_mem: ^Game_Memory
@@ -67,16 +69,23 @@ game_init :: proc() {
 	w := f32(rl.GetScreenWidth())
 	h := f32(rl.GetScreenHeight())
 
+	assets: Assets = ---
+	ok := assets_load(&assets)
+
 	g_mem^ = Game_Memory {
-		camera = {zoom = h / PIXEL_WINDOW_HEIGHT, target = {}, offset = {w / 2, h / 2}},
-		show_debug_overlay = ODIN_DEBUG,
+		camera = {zoom = DEFAULT_CAMERA_ZOOM, target = {}, offset = {w / 2, h / 2}},
+		show_debug_overlay = false,
+		assets = assets,
+		toolbar = toolbar_new(9),
 	}
+
 
 	game_hot_reloaded(g_mem)
 }
 
 @(export)
 game_shutdown :: proc() {
+	assets_unload(&g_mem.assets)
 	free(g_mem)
 }
 

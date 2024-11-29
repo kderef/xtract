@@ -17,3 +17,5 @@ linux
 atlas.png
 pdbs/
 bin/*
+!bin/ttf
+**/.DS_Store
