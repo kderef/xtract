@@ -1,100 +1,116 @@
-// disable console window on windows
-#![cfg_attr(not(debug_assertions), windows_subsystem = "windows")]
+mod grid;
 
-pub type Key = KeyboardKey;
-pub type Vec2 = Vector2;
-pub type Vec3 = Vector3;
-pub type Rect = Rectangle;
+use macroquad::prelude::*;
 
-use raylib::prelude::*;
+use crate::grid::Grid;
 
 #[inline]
-const fn vec2(x: f32, y: f32) -> Vector2 {
-    Vector2 { x, y }
-}
-
-pub struct Viewport {
-    pub camera: Camera2D,
-}
-
-impl Viewport {
-    pub fn new() -> Self {
-        Self {
-            camera: Camera2D {
-                zoom: 1.0,
-                rotation: 0.0,
-                offset: Vector2::zero(),
-                target: vec2(100., 100.),
-            },
-        }
-    }
-
-    pub fn debug_info(&self, dr: &mut impl RaylibDraw) {
-        dr.draw_fps(0, 0);
-
-        let camera_text = format!("{:#?}", self.camera);
-        dr.draw_text(&camera_text, 0, 30, 20, Color::CYAN);
-    }
-
-    pub fn update(&mut self, rl: &mut RaylibHandle) {
-        let dt = rl.get_frame_time();
-        let move_speed = 10. * dt;
-
-        let mut movement = vec2(0., 0.);
-
-        if rl.is_key_down(Key::KEY_LEFT) {
-            movement.x = -move_speed;
-        }
-        if rl.is_key_down(Key::KEY_RIGHT) {
-            movement.x = move_speed;
-        }
-        if rl.is_key_down(Key::KEY_UP) {
-            movement.y = -move_speed;
-        }
-        if rl.is_key_down(Key::KEY_DOWN) {
-            movement.y = move_speed;
-        }
-
-        if rl.is_key_down(Key::KEY_EQUAL) {
-            self.camera.zoom += dt;
-        }
-        if rl.is_key_down(Key::KEY_MINUS) {
-            self.camera.zoom -= dt;
-        }
-
-        self.camera.target += movement;
+fn display_rect() -> Rect {
+    let dpi = screen_dpi_scale();
+    Rect {
+        x: 0.0,
+        y: 0.0,
+        w: screen_width() * dpi,
+        h: screen_height() * dpi,
     }
 }
 
-fn main() {
-    let (mut rl, thread) = raylib::init()
-        .title("xtract")
-        .width(800)
-        .height(600)
-        .resizable()
-        .msaa_4x()
-        .build();
+fn app() -> Conf {
+    Conf {
+        window_title: "xtract".into(),
+        window_resizable: true,
+        high_dpi: true,
 
-    rl.set_target_fps(120);
+        sample_count: 2,
 
-    let mut running = true;
+        ..Default::default()
+    }
+}
 
-    let mut viewport = Viewport::new();
+fn draw_grid() {
+    let spacing = 20.0;
 
-    while running {
-        running ^= rl.window_should_close();
+    for y in 0..50 {
+        for x in 0..50 {
+            draw_rectangle_lines(
+                x as f32 * spacing,
+                y as f32 * spacing,
+                spacing,
+                spacing, //
+                2.0,
+                GRAY,
+            );
+        }
+    }
+}
 
-        viewport.update(&mut rl);
+fn camera_move(cam: &mut Camera2D) {
+    let dt = get_frame_time();
+    let move_speed = 100. * dt;
 
-        let mut dr = rl.begin_drawing(&thread);
+    let prev_target = cam.target;
 
-        dr.clear_background(Color::BLACK);
+    // set viewport
+    let display_rect = display_rect();
+    *cam = Camera2D::from_display_rect(display_rect);
 
-        {
-            let mut world = dr.begin_mode2D(viewport.camera);
-            world.draw_rectangle(10, 20, 100, 30, Color::GRAY);
+    cam.target = prev_target;
+    cam.zoom.y *= -1.;
+    cam.zoom *= 4.;
+
+    let pos = &mut cam.target;
+
+    if is_key_down(KeyCode::Up) {
+        pos.y -= move_speed;
+    }
+    if is_key_down(KeyCode::Down) {
+        pos.y += move_speed;
+    }
+    if is_key_down(KeyCode::Left) {
+        pos.x -= move_speed;
+    }
+    if is_key_down(KeyCode::Right) {
+        pos.x += move_speed;
+    }
+
+    if is_key_down(KeyCode::Equal) {
+        cam.zoom += 0.1 * dt;
+    }
+    if is_key_down(KeyCode::Minus) {
+        cam.zoom -= 0.1 * dt;
+    }
+}
+
+#[macroquad::main(app)]
+async fn main() {
+    let mut camera = Camera2D {
+        target: vec2(100., 100.),
+        zoom: vec2(0.00, 0.00),
+
+        ..Default::default()
+    };
+
+    let mut grid = Grid::new();
+
+    let mut use_camera = false;
+
+    loop {
+        if is_key_pressed(KeyCode::C) {
+            use_camera ^= true;
         }
 
-        viewport.debug_info(&mut dr);
+        camera_move(&mut camera);
+
+        if use_camera {
+            set_camera(&camera);
+        }
+
+        grid.draw(&camera);
+        draw_text("hello world", 100.0, 100.0, 20.0, RED);
+
+        set_default_camera();
+        draw_fps();
+
+        next_frame().await;
     }
 }
